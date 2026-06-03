@@ -13,7 +13,7 @@ app.use(express.json());
 // Routes
 app.use('/api/health', healthRouter);
 app.use('/api/anime', animeRouter);
-app.use('api/stream', scraperRouter);
+app.use('/api/stream', scraperRouter);
 
 // 404 handler
 app.use((req, res) => {

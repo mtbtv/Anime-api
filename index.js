@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const healthRouter = require('./routes/health');
 const animeRouter = require('./routes/anime');
+const scraperRouter = require('./routes/scraper');
+
 
 const app = express();
 
@@ -11,6 +13,7 @@ app.use(express.json());
 // Routes
 app.use('/api/health', healthRouter);
 app.use('/api/anime', animeRouter);
+app.use('api/stream', scraperRouter);
 
 // 404 handler
 app.use((req, res) => {

@@ -28,6 +28,7 @@ async function extractAsCdnStream(videoId) {
       headers: {
         'User-Agent': UA,
         'Referer': embedUrl,
+        'Origin': 'https://as-cdn21.top',
         'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -36,7 +37,48 @@ async function extractAsCdnStream(videoId) {
   );
 
   const data = await res.json();
-  return data?.videoSource || null;
+
+  if (!data?.videoSource) return null;
+
+  // Return URL + required playback headers
+  return {
+    url: data.videoSource,
+    headers: {
+      'Referer': 'https://as-cdn21.top/',
+      'Origin': 'https://as-cdn21.top',
+      'User-Agent': UA,
+    },
+    proxy_url: `/proxy?url=${encodeURIComponent(data.videoSource)}`,
+  };
 }
 
-module.exports = { extractAsCdnStream, fetchWithTimeout, UA, BASE_URL };
+// ── Proxy m3u8 (rewrites segment URLs + injects headers) ─────────────────────
+async function proxyM3u8(masterUrl) {
+  const res = await fetchWithTimeout(masterUrl, {
+    headers: {
+      'Referer': 'https://as-cdn21.top/',
+      'Origin': 'https://as-cdn21.top',
+      'User-Agent': UA,
+    }
+  }, 10000);
+
+  if (!res.ok) throw new Error(`Failed to fetch m3u8: ${res.status}`);
+
+  const text = await res.text();
+  const base = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
+
+  // Rewrite relative URLs to absolute
+  const rewritten = text
+    .split('\n')
+    .map(line => {
+      line = line.trim();
+      if (!line || line.startsWith('#')) return line;
+      if (line.startsWith('http')) return line;
+      return base + line;
+    })
+    .join('\n');
+
+  return rewritten;
+}
+
+module.exports = { extractAsCdnStream, proxyM3u8, fetchWithTimeout, UA, BASE_URL };
